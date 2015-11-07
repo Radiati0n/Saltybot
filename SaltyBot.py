@@ -54,7 +54,20 @@ class SaltyBot:
 
     def dbConnect(self):
         self.db = pymysql.connect(host='raspimumble.no-ip.org',port=3306,user='saltybot',passwd='salty-pass',db='saltydata')
-                                                
+
+    def getElo(self, player):
+        if player == 0:
+            chosenPlayer = self.playerOneName
+        else:
+            chosenPlayer = self.playerTwoName
+        cursor = self.db.cursor()
+        sqlQuery = "select * from characters where name = \"" + chosenPlayer + "\";"
+        cursor.execute(sqlQuery)
+        queryResult = cursor.fetchone()
+        if "None" in str(queryResult):
+            return 1200
+        else:
+            return queryResult[1]
             
 bot = SaltyBot()
 bot.getMatchData()
@@ -63,5 +76,7 @@ print "Money: " + bot.money
 print "Game Status: " + bot.gameStatus
 print bot.playerOneName + " vs " + bot.playerTwoName
 
+print "Player One Elo: " + str(bot.getElo(0))
+print "Player Two Elo: " + str(bot.getElo(1))
 
 bot.bet(0, 1)
