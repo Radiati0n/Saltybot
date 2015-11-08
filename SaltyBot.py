@@ -68,15 +68,36 @@ class SaltyBot:
             return 1200
         else:
             return queryResult[1]
+
+    def eloWinProb(self, player1Elo, player2Elo):
+       return 1/(1+math.pow(10,(float(player2Elo)-float(player1Elo))/400))
             
 bot = SaltyBot()
-bot.getMatchData()
+while True:
+    bot.getMatchData()
 
-print "Money: " + bot.money
-print "Game Status: " + bot.gameStatus
-print bot.playerOneName + " vs " + bot.playerTwoName
+    if bot.gameStatus == "open":
+        print "Money: " + bot.money
+        print bot.playerOneName + " vs " + bot.playerTwoName
+        
+        player1Elo = bot.getElo(0)
+        player2Elo = bot.getElo(1)
+        print "Player One Elo: " + str(player1Elo)
+        print "Player Two Elo: " + str(player2Elo)
 
-print "Player One Elo: " + str(bot.getElo(0))
-print "Player Two Elo: " + str(bot.getElo(1))
+        print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
+        print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
 
-bot.bet(0, 1)
+        bot.bet(0, 1)
+
+        while bot.gameStatus == "open" or bot.gameStatus == "locked":
+            bot.getMatchData()
+            time.sleep(5)
+
+        if bot.gameStatus == 1:
+            print bot.playerOneName + " wins!"
+        else:
+            print bot.playerTwoName + " wins!"
+        
+
+    time.sleep(10)
