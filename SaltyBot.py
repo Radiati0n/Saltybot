@@ -106,7 +106,7 @@ class SaltyBot:
         sqlQuery = "INSERT INTO characters(name, elo, matches) \r\nVALUES (\"" + characterName + "\", " + str(self.initialElo) + ", 0);"
         cursor.execute(sqlQuery)
         self.db.commit()
-		self.db.close()
+	self.db.close()
     
     
     def eloWinProb(self, player1Elo, player2Elo):
