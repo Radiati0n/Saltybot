@@ -1,7 +1,4 @@
-try:
-    import urllib.request as urllib2
-except ImportError:
-    import urllib2
+import urllib2
 import re
 import requests
 import random
@@ -11,18 +8,27 @@ import math
 import time
 
 class SaltyBot:
-    #K value used in elo calculation, lower values will cause smaller flucuations in elo with a win or loss
+    ##Class constants
+    #K value used in calculating elo
     K = 32
+    #Initial elo for characters not seen yet
+    initialElo = 1200
 
-    #Init method sets up opener to retrieve web data and the connection to the database
+    ##Class variables
+    #opener
+    #playerOneName
+    #playerTwoName
+    #db
+    #gameStatus
+    #money
+    
     def __init__(self):
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36')]
         self.opener.addheaders.append(('Cookie', 'PHPSESSID=phugqk1j1aqp210i0epcr5h6r6'))
         self.opener.addheaders.append(('Cookie', '__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623'))
         self.dbConnect()
-
-    #Retrieves the data for the current match
+        
     def getMatchData(self):
         mainPage = self.opener.open('http://www.saltybet.com/')
         stateJson = self.opener.open('http://www.saltybet.com/state.json')
@@ -36,8 +42,7 @@ class SaltyBot:
         self.gameStatus = jsonData["status"]                                        
         self.playerOneName = jsonData["p1name"]
         self.playerTwoName = jsonData["p2name"]
-
-    #Sends the packet to post the bet on the selected player
+        
     def bet(self, player, amount):
         if player == 0:
             chosenPlayer = "player1"
@@ -70,13 +75,41 @@ class SaltyBot:
         else:
             chosenPlayer = self.playerTwoName
         cursor = self.db.cursor()
-        sqlQuery = "select * from characters where name = \"" + chosenPlayer + "\";"
+        sqlQuery = "SELECT * FROM characters WHERE name = \"" + chosenPlayer + "\";"
         cursor.execute(sqlQuery)
         queryResult = cursor.fetchone()
         if "None" in str(queryResult):
-            return 1200
+            return self.initialElo
         else:
             return queryResult[1]
+
+    def updateDatabase(self, playerOneElo, playerTwoElo):
+        cursor = self.db.cursor()
+        sqlQuery = "SELECT * FROM characters WHERE name = \"" + self.playerOneName + "\";"
+        cursor.execute(sqlQuery)
+        queryResult = cursor.fetchone()
+        if "None" in str(queryResult):
+            self.insertNewCharacter(self.playerOneName, cursor)
+        sqlQuery = "SELECT * FROM characters WHERE name = \"" + self.playerTwoName + "\";"
+        cursor.execute(sqlQuery)
+        queryResult = cursor.fetchone()
+        if "None" in str(queryResult):
+            self.insertNewCharacter(self.playerTwoName, cursor)
+        sqlQuery = "UPDATE characters SET elo = " + str(playerOneElo) + ", matches = matches + 1 WHERE name = \"" + self.playerOneName + "\";"
+        cursor.execute(sqlQuery)
+        self.db.commit()
+        sqlQuery = "UPDATE characters SET elo = " + str(playerTwoElo) + ", matches = matches + 1 WHERE name = \"" + self.playerTwoName + "\";"
+        cursor.execute(sqlQuery)
+        self.db.commit()
+
+    def insertNewCharacter(self, characterName, cursor):
+        sqlQuery = "INSERT INTO characters(name, elo, matches) \r\nVALUES (\"" + characterName + "\", " + str(self.initialElo) + ", 0);"
+        cursor.execute(sqlQuery)
+        self.db.commit()
+    
+    
+    def eloWinProb(self, player1Elo, player2Elo):
+       return 1/(1+math.pow(10,(float(player2Elo)-float(player1Elo))/400))
 
     ##
     # Given the elos of both characters and the s value, calculates and returns the new elos
@@ -94,16 +127,36 @@ class SaltyBot:
         newElo1 = elo1 + self.K*(s - expectedScore1)
         newElo2 = elo2 + self.K*(1 - s - expectedScore2)
         return (int(round(newElo1)), int(round(newElo2)))
-
-        
+            
 bot = SaltyBot()
-bot.getMatchData()
+while True:
+    bot.getMatchData()
 
-print "Money: " + bot.money
-print "Game Status: " + bot.gameStatus
-print bot.playerOneName + " vs " + bot.playerTwoName
+    if bot.gameStatus == "open":
+        print "Money: " + bot.money
+        print bot.playerOneName + " vs " + bot.playerTwoName
+        
+        player1Elo = bot.getElo(0)
+        player2Elo = bot.getElo(1)
+        print "Player One Elo: " + str(player1Elo)
+        print "Player Two Elo: " + str(player2Elo)
 
-print "Player One Elo: " + str(bot.getElo(0))
-print "Player Two Elo: " + str(bot.getElo(1))
+        print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
+        print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
 
-bot.bet(0, 1)
+        bot.bet(0, 1)
+
+        while bot.gameStatus == "open" or bot.gameStatus == "locked":
+            bot.getMatchData()
+            time.sleep(5)
+
+        if bot.gameStatus == 1:
+            print bot.playerOneName + " wins!"
+            s = 1
+        else:
+            print bot.playerTwoName + " wins!"
+            s = 0
+        (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)
+        bot.updateDatabase(player1NewElo, player2NewElo)
+        
+    time.sleep(10)
