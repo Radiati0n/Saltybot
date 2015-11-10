@@ -83,50 +83,10 @@ class SaltyBot:
         else:
             return queryResult[1]
 
-    def updateDatabase(self, playerOneElo, playerTwoElo):
-        cursor = self.db.cursor()
-        sqlQuery = "SELECT * FROM characters WHERE name = \"" + self.playerOneName + "\";"
-        cursor.execute(sqlQuery)
-        queryResult = cursor.fetchone()
-        if "None" in str(queryResult):
-            self.insertNewCharacter(self.playerOneName, cursor)
-        sqlQuery = "SELECT * FROM characters WHERE name = \"" + self.playerTwoName + "\";"
-        cursor.execute(sqlQuery)
-        queryResult = cursor.fetchone()
-        if "None" in str(queryResult):
-            self.insertNewCharacter(self.playerTwoName, cursor)
-        sqlQuery = "UPDATE characters SET elo = " + str(playerOneElo) + ", matches = matches + 1 WHERE name = \"" + self.playerOneName + "\";"
-        cursor.execute(sqlQuery)
-        self.db.commit()
-        sqlQuery = "UPDATE characters SET elo = " + str(playerTwoElo) + ", matches = matches + 1 WHERE name = \"" + self.playerTwoName + "\";"
-        cursor.execute(sqlQuery)
-        self.db.commit()
-
-    def insertNewCharacter(self, characterName, cursor):
-        sqlQuery = "INSERT INTO characters(name, elo, matches) \r\nVALUES (\"" + characterName + "\", " + str(self.initialElo) + ", 0);"
-        cursor.execute(sqlQuery)
-        self.db.commit()
-    
     
     def eloWinProb(self, player1Elo, player2Elo):
        return 1/(1+math.pow(10,(float(player2Elo)-float(player1Elo))/400))
 
-    ##
-    # Given the elos of both characters and the s value, calculates and returns the new elos
-    # Params:
-    #   elo1 - elo of player1 before the match
-    #   elo2 - elo of player2 before the match
-    #   s - 1 if player1 won, .5 if a draw, 0 if player2 won
-    # Return: (newElo1, newElo2) - tuple with the new elo for both players
-    ##
-    def calculateNewElos(self, elo1, elo2, s):
-        transformedElo1 = math.pow(10, elo1/400)
-        transformedElo2 = math.pow(10, elo2/400)
-        expectedScore1 = transformedElo1/(transformedElo1+transformedElo2)
-        expectedScore2 = transformedElo2/(transformedElo1+transformedElo2)
-        newElo1 = elo1 + self.K*(s - expectedScore1)
-        newElo2 = elo2 + self.K*(1 - s - expectedScore2)
-        return (int(round(newElo1)), int(round(newElo2)))
             
 bot = SaltyBot()
 while True:
@@ -156,7 +116,5 @@ while True:
         else:
             print bot.playerTwoName + " wins!"
             s = 0
-        (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)
-        bot.updateDatabase(player1NewElo, player2NewElo)
         
     time.sleep(10)
