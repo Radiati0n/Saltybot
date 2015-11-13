@@ -137,8 +137,8 @@ while True:
         
         player1Elo = bot.getElo(0)
         player2Elo = bot.getElo(1)
-        print self.playerOneName + " Elo: " + str(player1Elo)
-        print self.playerTwoName + " Elo: " + str(player2Elo)
+        print bot.playerOneName + " Elo: " + str(player1Elo)
+        print bot.playerTwoName + " Elo: " + str(player2Elo)
 
         print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
         print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
