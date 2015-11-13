@@ -133,27 +133,24 @@ while True:
     bot.getMatchData()
 
     if bot.gameStatus == "open":
-        print "Money: " + bot.money
         print bot.playerOneName + " vs " + bot.playerTwoName
         
         player1Elo = bot.getElo(0)
         player2Elo = bot.getElo(1)
-        print "Player One Elo: " + str(player1Elo)
-        print "Player Two Elo: " + str(player2Elo)
+        print self.playerOneName + " Elo: " + str(player1Elo)
+        print self.playerTwoName + " Elo: " + str(player2Elo)
 
         print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
         print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
-
-        bot.bet(0, 1)
 
         while bot.gameStatus == "open" or bot.gameStatus == "locked":
             bot.getMatchData()
             time.sleep(5)
 
-        if bot.gameStatus == 1:
+        if bot.gameStatus == "1":
             print bot.playerOneName + " wins!"
             s = 1
-        else:
+        elif bot.gameStatus == "2":
             print bot.playerTwoName + " wins!"
             s = 0
         (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)

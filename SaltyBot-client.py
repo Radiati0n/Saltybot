@@ -25,8 +25,11 @@ class SaltyBot:
     def __init__(self):
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36')]
-        self.opener.addheaders.append(('Cookie', 'PHPSESSID=phugqk1j1aqp210i0epcr5h6r6'))
+        self.opener.addheaders.append(('Cookie', 'PHPSESSID=og52g9k5j4gprcvmeeu5foe0u1'))
         self.opener.addheaders.append(('Cookie', '__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623'))
+        self.opener.addheaders.append(('Cookie', '_ga=GA1.2.1188374362.1447004664'))
+        self.opener.addheaders.append(('Cookie', '_gat=1'))
+        self.opener.addheaders.append(('Cookie', 'GED_PLAYLIST_ACTIVITY=W3sidSI6IjI1bWwiLCJ0IjoxNDQ3MTk3ODk0LCJlZCI6eyJpIjp7InciOnsidHQiOjU1NiwicGQiOjU1NiwiYnMiOjEwfX0sImEiOlt7Imt2Ijp7fX0seyJrdiI6e319LHsia3YiOnt9fSx7Imt2Ijp7fX0seyJrdiI6e319LHsia3YiOnt9fV19LCJudiI6MCwicGwiOjU1Nn1d'))
         self.dbConnect()
         
     def getMatchData(self):
@@ -48,21 +51,23 @@ class SaltyBot:
             chosenPlayer = "player1"
         else:
             chosenPlayer = "player2"
+
+        print "Betting " + str(int(amount)) + " on " + chosenPlayer
+        
         url = "http://www.saltybet.com/ajax_place_bet.php"
-        params = { 'selectedplayer' : chosenPlayer, 'wager' : str(amount) }
+        params = { 'selectedplayer' : chosenPlayer, 'wager' : str(int(amount)) }
 
         headers = {
             "Connection" : "keep-alive",
-            "Accept" : "*/*",
-            "Origin" : "http://www.saltybet.com",
+            "Accept" : "application/json, text/javascript, */*; q=0.01",
             "X-Requested-With" : "XMLHttpRequest",
             "User-Agent" : "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36",
             "Content-Type" : "application/x-www-form-urlencoded; charset=UTF-8",
             "Referer" : "http://www.saltybet.com/",        
             "Accept-Encoding" : "gzip, deflate",
             "Accept-Language" : "en-US,en;q=0.8",
-            "Cookie" : "__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623; PHPSESSID=phugqk1j1aqp210i0epcr5h6r6",
-        }
+            "Cookie" : "__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623; PHPSESSID=og52g9k5j4gprcvmeeu5foe0u1; _ga=GA1.2.1188374362.1447004664; GED_PLAYLIST_ACTIVITY=W3sidSI6IjI1bWwiLCJ0IjoxNDQ3MTk4OTMxLCJlZCI6eyJpIjp7InciOnsidHQiOjI5NCwicGQiOjI5NCwiYnMiOjEwLCJlcyI6MH19LCJhIjpbeyJrdiI6eyJtIjo0MDJ9fSx7Imt2Ijp7Im0iOjI2MTIsImMiOjJ9fSx7Imt2Ijp7fX0seyJrdiI6e319LHsia3YiOnt9fSx7Imt2Ijp7Im0iOjE1NDl9fV19LCJudiI6MSwicGwiOjI5NH1d",
+            }
                          
         requests.post(url, data=params, headers=headers)
 
@@ -104,16 +109,19 @@ while True:
         print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
         print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
 
-        bot.bet(0, 1)
+        if(bot.eloWinProb(player1Elo, player2Elo) > 0.5):
+            bot.bet(0, float(bot.money)*0.10)
+        else:
+            bot.bet(1, float(bot.money)*0.10)
 
         while bot.gameStatus == "open" or bot.gameStatus == "locked":
             bot.getMatchData()
             time.sleep(5)
 
-        if bot.gameStatus == 1:
+        if bot.gameStatus == "1":
             print bot.playerOneName + " wins!"
             s = 1
-        else:
+        elif bot.gameStatus == "2":
             print bot.playerTwoName + " wins!"
             s = 0
         
