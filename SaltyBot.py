@@ -130,30 +130,33 @@ class SaltyBot:
             
 bot = SaltyBot()
 while True:
-    bot.getMatchData()
+    try:
+        bot.getMatchData()
 
-    if bot.gameStatus == "open":
-        print bot.playerOneName + " vs " + bot.playerTwoName
-        
-        player1Elo = bot.getElo(0)
-        player2Elo = bot.getElo(1)
-        print bot.playerOneName + " Elo: " + str(player1Elo)
-        print bot.playerTwoName + " Elo: " + str(player2Elo)
+        if bot.gameStatus == "open":
+            print bot.playerOneName + " vs " + bot.playerTwoName
+            
+            player1Elo = bot.getElo(0)
+            player2Elo = bot.getElo(1)
+            print bot.playerOneName + " Elo: " + str(player1Elo)
+            print bot.playerTwoName + " Elo: " + str(player2Elo)
 
-        print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
-        print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
+            print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
+            print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
 
-        while bot.gameStatus == "open" or bot.gameStatus == "locked":
-            bot.getMatchData()
-            time.sleep(5)
+            while bot.gameStatus == "open" or bot.gameStatus == "locked":
+                bot.getMatchData()
+                time.sleep(3)
 
-        if bot.gameStatus == "1":
-            print bot.playerOneName + " wins!"
-            s = 1
-        elif bot.gameStatus == "2":
-            print bot.playerTwoName + " wins!"
-            s = 0
-        (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)
-        bot.updateDatabase(player1NewElo, player2NewElo)
-        
-    time.sleep(10)
+            if bot.gameStatus == "1":
+                print bot.playerOneName + " wins!"
+                s = 1
+            elif bot.gameStatus == "2":
+                print bot.playerTwoName + " wins!"
+                s = 0
+            (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)
+            bot.updateDatabase(player1NewElo, player2NewElo)
+            
+        time.sleep(5)
+    except:
+        print "Error - Trying again."
