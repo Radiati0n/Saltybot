@@ -13,6 +13,20 @@ class SaltyBot:
     K = 32
     #Initial elo for characters not seen yet
     initialElo = 1200
+    ##Login variables
+    #Ubuntu USER_AGENT
+    USER_AGENT = 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:42.0) Gecko/20100101 Firefox/42.0'
+    #Windows USER_AGENT
+    #USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36'
+    ACCEPT_HTML = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    ACCEPT_JSON = 'application/json, text/javascript, */*; q=0.01'
+    ACCEPT_LANGUAGE = 'en-US,en;q=0.5'
+    ACCEPT_ENCODING = 'gzip, deflate'
+    CONNECTION = 'keep-alive'
+    CONTENT_TYPE = 'application/x-www-form-urlencoded; charset=UTF-8'
+    #Enter login details for account to use here
+    EMAIL = ''
+    PASSWORD = ''
 
     ##Class variables
     #opener
@@ -21,12 +35,46 @@ class SaltyBot:
     #db
     #gameStatus
     #money
-    
+
+    def buildCookieString(self, cookieDict):
+        cookies = ''
+        for key in cookieDict:
+            cookies += key+'='+cookieDict[key]+'; '
+        return cookies
+
+    def signin(self):
+        s = requests.Session()
+        url = 'http://www.saltybet.com'
+        response = s.get(url)
+        cookie = self.buildCookieString(response.cookies.get_dict())
+
+        url = 'http://www.saltybet.com/authenticate?signin=1'
+        data = {
+            'email':self.EMAIL,
+            'pword':self.PASSWORD,
+            'authenticate':'signin'
+        }
+        headers = {
+            'User-Agent':self.USER_AGENT,
+            'Accept':self.ACCEPT_HTML,
+            'Accept-Language':self.ACCEPT_LANGUAGE,
+            'Accept-Encoding':self.ACCEPT_ENCODING,
+            'Cookie':cookie,
+            'Referer':'http://www.saltybet.com/authenticate?signin=1',
+            'Connection':self.CONNECTION,
+            'Content-Type':self.CONTENT_TYPE,
+            'Content-Length':'56'
+        }
+        
+        response = s.post(url, data=data, headers=headers)
+        cookies = self.buildCookieString(s.cookies.get_dict())
+        return cookies
+
     def __init__(self):
+        self.cookie = self.signin()
         self.opener = urllib2.build_opener()
-        self.opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36')]
-        self.opener.addheaders.append(('Cookie', 'PHPSESSID=phugqk1j1aqp210i0epcr5h6r6'))
-        self.opener.addheaders.append(('Cookie', '__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623'))
+        self.opener.addheaders = [('User-agent', self.USER_AGENT)]
+        self.opener.addheaders.append(('Cookie', self.cookie))
         self.dbConnect()
         
     def getMatchData(self):
@@ -39,7 +87,16 @@ class SaltyBot:
         
         moneySearch = re.search('(?<=<span class="dollar" id="balance">)\w+', mainPageData)
         self.money = moneySearch.group(0)
-        self.gameStatus = jsonData["status"]                                        
+        self.gameStatus = jsonData["status"]
+        if "bracket" in jsonData["remaining"] or "FINAL ROUND!" in jsonData["remaining"]:
+            self.gameMode = "tournament"
+        elif "exhibition matches" in jsonData["remaining"]:
+            # Using just "exhibition" would match the final tournament round
+            self.gameMode = "exhibition"
+        else:
+            self.gameMode = "match"
+        self.playerOneName = jsonData["p1name"]
+        self.playerTwoName = jsonData["p2name"]
         self.playerOneName = jsonData["p1name"]
         self.playerTwoName = jsonData["p2name"]
         
@@ -48,23 +105,25 @@ class SaltyBot:
             chosenPlayer = "player1"
         else:
             chosenPlayer = "player2"
+
+        print "Betting " + str(int(amount)) + " on " + chosenPlayer
+        
         url = "http://www.saltybet.com/ajax_place_bet.php"
-        params = { 'selectedplayer' : chosenPlayer, 'wager' : str(amount) }
+        params = { 'selectedplayer' : chosenPlayer, 'wager' : str(int(amount)) }
 
         headers = {
-            "Connection" : "keep-alive",
-            "Accept" : "*/*",
-            "Origin" : "http://www.saltybet.com",
+            "Connection" : self.CONNECTION,
+            "Accept" : self.ACCEPT_JSON,
             "X-Requested-With" : "XMLHttpRequest",
-            "User-Agent" : "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36",
-            "Content-Type" : "application/x-www-form-urlencoded; charset=UTF-8",
+            "User-Agent" : self.USER_AGENT,
+            "Content-Type" : self.CONTENT_TYPE,
             "Referer" : "http://www.saltybet.com/",        
-            "Accept-Encoding" : "gzip, deflate",
-            "Accept-Language" : "en-US,en;q=0.8",
-            "Cookie" : "__cfduid=d5866a182ac994d0d7fe5268086e20e2e1446683623; PHPSESSID=phugqk1j1aqp210i0epcr5h6r6",
-        }
+            "Accept-Encoding" : self.ACCEPT_ENCODING,
+            "Accept-Language" : self.ACCEPT_LANGUAGE,
+            "Cookie" : self.cookie
+            }
                          
-        requests.post(url, data=params, headers=headers)
+        response = requests.post(url, data=params, headers=headers)
 
     def dbConnect(self):
         self.db = pymysql.connect(host='raspimumble.no-ip.org',port=3306,user='saltybot',passwd='salty-pass',db='saltydata')
@@ -106,8 +165,7 @@ class SaltyBot:
         sqlQuery = "INSERT INTO characters(name, elo, matches) \r\nVALUES (\"" + characterName + "\", " + str(self.initialElo) + ", 0);"
         cursor.execute(sqlQuery)
         self.db.commit()
-    
-    
+                                                                                                   
     def eloWinProb(self, player1Elo, player2Elo):
        return 1/(1+math.pow(10,(float(player2Elo)-float(player1Elo))/400))
 
@@ -127,36 +185,5 @@ class SaltyBot:
         newElo1 = elo1 + self.K*(s - expectedScore1)
         newElo2 = elo2 + self.K*(1 - s - expectedScore2)
         return (int(round(newElo1)), int(round(newElo2)))
-            
-bot = SaltyBot()
-while True:
-    try:
-        bot.getMatchData()
 
-        if bot.gameStatus == "open":
-            print bot.playerOneName + " vs " + bot.playerTwoName
-            
-            player1Elo = bot.getElo(0)
-            player2Elo = bot.getElo(1)
-            print bot.playerOneName + " Elo: " + str(player1Elo)
-            print bot.playerTwoName + " Elo: " + str(player2Elo)
-
-            print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
-            print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
-
-            while bot.gameStatus == "open" or bot.gameStatus == "locked":
-                bot.getMatchData()
-                time.sleep(3)
-
-            if bot.gameStatus == "1":
-                print bot.playerOneName + " wins!"
-                s = 1
-            elif bot.gameStatus == "2":
-                print bot.playerTwoName + " wins!"
-                s = 0
-            (player1NewElo, player2NewElo) = bot.calculateNewElos(player1Elo, player2Elo, s)
-            bot.updateDatabase(player1NewElo, player2NewElo)
-            
-        time.sleep(5)
-    except:
-        print "Error - Trying again."
+                                                                                                   
