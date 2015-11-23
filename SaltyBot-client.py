@@ -3,11 +3,13 @@ import time
 import sys
 
 bot = SaltyBot()
+exhibitionMessageShown = False
 while True:
     try:
         bot.getMatchData()
 
         if bot.gameStatus == "open" and bot.gameMode != "exhibition":
+            exhibitionMessageShown = False
             print "Money: " + bot.money
             print bot.playerOneName + " vs " + bot.playerTwoName
             
@@ -35,6 +37,9 @@ while True:
                 print bot.playerTwoName + " wins!"
                 s = 0
             print ""
+        elif bot.gameMode == "exhibition" and exhibitionMessageShown == False:
+            print "Not betting during exhibition mode"
+            exhibitionMessageShown = True
         time.sleep(5)
     except:
         e = sys.exc_info()[0]
