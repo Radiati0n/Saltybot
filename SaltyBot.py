@@ -103,10 +103,12 @@ class SaltyBot:
     def bet(self, player, amount):
         if player == 0:
             chosenPlayer = "player1"
+            chosenPlayerName = self.playerOneName
         else:
             chosenPlayer = "player2"
+            chosenPlayerName = self.playerTwoName
 
-        print "Betting " + str(int(amount)) + " on " + chosenPlayer
+        print "Betting " + str(int(amount)) + " on " + chosenPlayerName
         
         url = "http://www.saltybet.com/ajax_place_bet.php"
         params = { 'selectedplayer' : chosenPlayer, 'wager' : str(int(amount)) }

@@ -13,11 +13,11 @@ while True:
             
             player1Elo = bot.getElo(0)
             player2Elo = bot.getElo(1)
-            print "Player One Elo: " + str(player1Elo)
-            print "Player Two Elo: " + str(player2Elo)
+            print bot.playerOneName + " Elo: " + str(player1Elo)
+            print bot.playerTwoName + " Elo: " + str(player2Elo)
 
-            print "P(P1win): " + str(bot.eloWinProb(player1Elo, player2Elo))
-            print "P(P2win): " + str(bot.eloWinProb(player2Elo, player1Elo))
+            print "P(" + bot.playerOneName + " win): " + str(bot.eloWinProb(player1Elo, player2Elo))
+            print "P(" + bot.playerTwoName + " win): " + str(bot.eloWinProb(player2Elo, player1Elo))
 
             if(bot.eloWinProb(player1Elo, player2Elo) > 0.5):
                 bot.bet(0, float(bot.money)*0.10)
@@ -34,6 +34,7 @@ while True:
             elif bot.gameStatus == "2":
                 print bot.playerTwoName + " wins!"
                 s = 0
+            print ""
         time.sleep(5)
     except:
         e = sys.exc_info()[0]
